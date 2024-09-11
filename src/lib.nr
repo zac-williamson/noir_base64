@@ -1,5 +1,5 @@
 struct Base64EncodeBE {
-    table: [u8; 128]
+    table: [u8; 256]
 }
 impl Base64EncodeBE {
     fn new() -> Self {
@@ -20,7 +20,11 @@ impl Base64EncodeBE {
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,// 65-90 (A-Z)
                 0, 0, 0, 0, 0, 0,// 91-96
                 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,// 97-122 (a-z)
-                0, 0, 0, 0, 0// 123-127
+                0, 0, 0, 0, 0,// 123-127
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         }
     }
@@ -54,7 +58,7 @@ impl Base64DecodeBE {
 /**
  * @brief Take an array of ASCII values and convert into base64 values
  **/
-pub fn base64_encode_elements<let InputElements: u64>(input: [u8; InputElements]) -> [u8; InputElements] {
+pub fn base64_encode_elements<let InputElements: u32>(input: [u8; InputElements]) -> [u8; InputElements] {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
     let mut Base64Encoder = Base64EncodeBE::new();
 
@@ -69,7 +73,7 @@ pub fn base64_encode_elements<let InputElements: u64>(input: [u8; InputElements]
 /**
  * @brief Take an array of base64 values and convert into ASCII values
  **/
-pub fn base64_decode_elements<let InputElements: u64>(input: [u8; InputElements]) -> [u8; InputElements] {
+pub fn base64_decode_elements<let InputElements: u32>(input: [u8; InputElements]) -> [u8; InputElements] {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
     let mut Base64Decoder = Base64DecodeBE::new();
 
@@ -86,16 +90,16 @@ pub fn base64_decode_elements<let InputElements: u64>(input: [u8; InputElements]
  *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
  *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
-pub fn base64_encode<let InputElements: u64, let OutputBytes: u64>(input: [u8; InputElements]) -> [u8; OutputBytes] {
+pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
     let encoded: [u8; InputElements] = base64_encode_elements(input);
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
     let mut result: [u8; OutputBytes] = [0; OutputBytes];
-    let BASE64_ELEMENTS_PER_CHUNK: u64 = 40;
-    let BYTES_PER_CHUNK: u64 = 30;
+    let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
+    let BYTES_PER_CHUNK: u32 = 30;
     let num_chunks = (InputElements / BASE64_ELEMENTS_PER_CHUNK)
-        + (InputElements % BASE64_ELEMENTS_PER_CHUNK != 0) as u64;
+        + (InputElements % BASE64_ELEMENTS_PER_CHUNK != 0) as u32;
 
     for i in 0..num_chunks - 1 {
         let mut slice: Field = 0;
@@ -131,15 +135,15 @@ pub fn base64_encode<let InputElements: u64, let OutputBytes: u64>(input: [u8; I
 /**
  * @brief Take an array of packed base64 encoded bytes and convert into ASCII
  **/
-pub fn base64_decode<let InputBytes: u64, let OutputElements: u64>(input: [u8; InputBytes]) -> [u8; OutputElements] {
+pub fn base64_decode<let InputBytes: u32, let OutputElements: u32>(input: [u8; InputBytes]) -> [u8; OutputElements] {
     //  let decoded: [u8; InputBytes] = base64_decode_elements(input);
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
     let mut result: [u8; OutputElements] = [0; OutputElements];
-    let BASE64_ELEMENTS_PER_CHUNK: u64 = 40;
-    let BYTES_PER_CHUNK: u64 = 30;
-    let num_chunks = (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u64;
+    let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
+    let BYTES_PER_CHUNK: u32 = 30;
+    let num_chunks = (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
 
     for i in 0..num_chunks - 1 {
         let mut slice: Field = 0;
@@ -174,7 +178,6 @@ pub fn base64_decode<let InputBytes: u64, let OutputElements: u64>(input: [u8; I
     }
     base64_decode_elements(result)
 }
-
 
 // ooook so we take ascii and encode as base64, we get an undefined character
 #[test]
@@ -243,7 +246,6 @@ fn test_base64_decode() {
         82, 104, 75, 104, 88,
         116, 108, 85
     ];
-
 
     let input: [u8; 32] = [
         27, 19, 37, 131, 2, 226, 202, 153, 213, 172,
